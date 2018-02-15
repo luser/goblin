@@ -18,7 +18,7 @@ env_logger = "0.4.3"
 
 [dependencies]
 plain = "0.2.3"
-uuid = "0.5.1"
+uuid = "0.6.0-beta"
 
 [dependencies.log]
 version = "0.3.8"

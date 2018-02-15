@@ -126,6 +126,85 @@ macro_rules! if_alloc {
     )*)
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct Uuid(pub uuid::Uuid);
+
+impl<'a> scroll::ctx::TryFromCtx<'a, scroll::Endian> for Uuid {
+    type Error = scroll::Error;
+    type Size = usize;
+    fn try_from_ctx(bytes: &'a [u8], le: scroll::Endian) -> Result<(Self, Self::Size), scroll::Error> {
+        use scroll::{Pread};
+
+        let offset = &mut 0;
+        let d1 = bytes.gread_with(offset, le)?;
+        let d2 = bytes.gread_with(offset, le)?;
+        let d3 = bytes.gread_with(offset, le)?;
+        let mut d4: [u8; 8] = [0; 8];
+        bytes.gread_inout_with(offset, &mut d4, le)?;
+        // `from_fields` only returns failure if d4 is not exactly 8 bytes.
+        Ok((Uuid(uuid::Uuid::from_fields(d1, d2, d3, &d4[..]).unwrap()), *offset))
+    }
+}
+
+impl scroll::ctx::FromCtx<scroll::Endian> for Uuid {
+    fn from_ctx(bytes: &[u8], le: scroll::Endian) -> Self {
+        use scroll::{Cread};
+        use std::mem;
+
+        let mut offset = 0;
+        let d1 = bytes.cread_with(offset, le);
+        offset += mem::size_of::<u32>();
+        let d2 = bytes.cread_with(offset, le);
+        offset += mem::size_of::<u16>();
+        let d3 = bytes.cread_with(offset, le);
+        offset += mem::size_of::<u16>();
+        let mut d4: [u8; 8] = [0; 8];
+        for i in 0..d4.len() {
+            d4[i] = bytes.cread_with(offset, le);
+            offset += 1;
+        }
+        // `from_fields` only returns failure if d4 is not exactly 8 bytes.
+        Uuid(uuid::Uuid::from_fields(d1, d2, d3, &d4[..]).unwrap())
+    }
+}
+
+impl scroll::ctx::TryIntoCtx<scroll::Endian> for Uuid {
+    type Error = scroll::Error;
+    type Size = usize;
+    fn try_into_ctx(self, bytes: &mut [u8], le: scroll::Endian) -> Result<Self::Size, scroll::Error> {
+        use scroll::{Pwrite};
+
+        let offset = &mut 0;
+        let (d1, d2, d3, d4) = self.0.as_fields();
+        bytes.gwrite_with(d1, offset, le)?;
+        bytes.gwrite_with(d2, offset, le)?;
+        bytes.gwrite_with(d3, offset, le)?;
+        bytes.gwrite_with(&d4[..], offset, ())?;
+        Ok(*offset)
+    }
+}
+
+impl scroll::ctx::IntoCtx<scroll::Endian> for Uuid {
+    fn into_ctx(self, bytes: &mut [u8], le: scroll::Endian) {
+        use scroll::{Cwrite};
+        use std::mem;
+
+        let mut offset = 0;
+        let (d1, d2, d3, d4) = self.0.as_fields();
+        bytes.cwrite_with(d1, offset, le);
+        offset += mem::size_of::<u32>();
+        bytes.cwrite_with(d2, offset, le);
+        offset += mem::size_of::<u16>();
+        bytes.cwrite_with(d3, offset, le);
+        offset += mem::size_of::<u16>();
+        for b in d4 {
+            bytes.cwrite_with(*b, offset, le);
+            offset += 1;
+        }
+    }
+}
+
+
 #[cfg(feature = "alloc")]
 pub mod error;
 

@@ -3,6 +3,7 @@
 use error;
 use core::fmt::{self, Display};
 use scroll::{self, ctx, Endian, Pread};
+use ::Uuid;
 
 ///////////////////////////////////////
 // Load Commands from mach-o/loader.h
@@ -898,7 +899,7 @@ pub struct UuidCommand {
     /// sizeof(struct uuid_command)
     pub cmdsize: u32,
     /// 16 bytes the 128-bit uuid
-    pub uuid: [u8; 16],
+    pub uuid: Uuid,
 }
 
 pub const SIZEOF_UUID_COMMAND: usize = 24;

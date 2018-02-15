@@ -1,5 +1,6 @@
 use scroll::{self, Pread};
 use error;
+use uuid::Uuid;
 
 use pe::section_table;
 use pe::utils;
@@ -21,9 +22,9 @@ impl<'a> DebugData<'a> {
             codeview_pdb70_debug_info: codeview_pdb70_debug_info
         })
     }
-    
+
     /// Return this executable's debugging GUID, suitable for matching against a PDB file.
-    pub fn guid(&self) -> Option<[u8; 16]> {
+    pub fn guid(&self) -> Option<Uuid> {
         self.codeview_pdb70_debug_info
             .map(|pdb70| pdb70.signature)
     }
@@ -72,7 +73,7 @@ pub const CODEVIEW_CV41_MAGIC: u32 = 0x3930424e;
 #[derive(Debug, PartialEq, Copy, Clone, Default)]
 pub struct CodeviewPDB70DebugInfo<'a> {
     pub codeview_signature: u32,
-    pub signature: [u8; 16],
+    pub signature: Uuid,
     pub age: u32,
     pub filename: &'a [u8],
 }
@@ -103,10 +104,13 @@ impl<'a> CodeviewPDB70DebugInfo<'a> {
         }
 
         // read the rest
-        let mut signature: [u8; 16] = [0; 16];
-        for i in 0..16 {
-            signature[i] = bytes.gread_with(&mut offset, scroll::LE)?;
-        }
+        let d1 = bytes.gread_with(&mut offset, scroll::LE)?;
+        let d2 = bytes.gread_with(&mut offset, scroll::LE)?;
+        let d3 = bytes.gread_with(&mut offset, scroll::LE)?;
+        let mut d4: [u8; 8] = [0; 8];
+        bytes.gread_inout_with(&mut offset, &mut d4, scroll::LE)?;
+        // `from_fields` only returns failure if d4 is not exactly 8 bytes.
+        let signature = Uuid::from_fields(d1, d2, d3, &d4[..]).unwrap();
         let age: u32 = bytes.gread_with(&mut offset, scroll::LE)?;
         let filename = &bytes[offset..offset + filename_length];
 

@@ -82,6 +82,7 @@
 #![cfg_attr(all(feature = "alloc", not(feature = "std")), feature(alloc))]
 
 extern crate plain;
+extern crate uuid;
 #[cfg_attr(feature = "alloc", macro_use)]
 extern crate scroll;
 
